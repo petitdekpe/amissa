@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Amissa - Intentions de Messe{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container">
+        <div class="text-center" style="margin-bottom: 2rem;">
+            <h1 class="page-title">Intentions de Messe</h1>
+            <p class="text-gray-500">Selectionnez une paroisse pour soumettre votre intention de messe</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            {% for paroisse in paroisses %}
+                <a href="{{ path('public_paroisse_calendar', {id: paroisse.id}) }}" class="card" style="text-decoration: none; color: inherit; transition: box-shadow 0.2s;">
+                    <div class="flex gap-4">
+                        <div class="stats-icon">P</div>
+                        <div style="flex: 1;">
+                            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">{{ paroisse.nom }}</h2>
+                            <p class="text-sm text-gray-500" style="margin-bottom: 0.5rem;">{{ paroisse.diocese.nom }}</p>
+                            <p class="text-sm">{{ paroisse.adresse }}</p>
+                        </div>
+                        <div style="color: #9ca3af;">&rarr;</div>
+                    </div>
+                </a>
+            {% else %}
+                <div class="card text-center" style="grid-column: 1 / -1; padding: 3rem;">
+                    <p class="text-gray-500">Aucune paroisse disponible pour le moment.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

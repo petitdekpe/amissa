@@ -1,0 +1,79 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Nouvelle Messe - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Nouvelle Messe</h1>
+    <p class="page-subtitle">{{ paroisse.nom }}</p>
+
+    <div class="card" style="max-width: 600px;">
+        <form method="post">
+            <div class="form-group">
+                <label for="titre" class="form-label">Titre de la messe *</label>
+                <input type="text" name="titre" id="titre" class="form-input" required placeholder="Ex: Messe du dimanche">
+            </div>
+
+            <div class="form-group">
+                <label for="type" class="form-label">Type *</label>
+                <select name="type" id="type" class="form-select" onchange="toggleRecurrence()">
+                    <option value="recurrente">Messe recurrente</option>
+                    <option value="speciale">Messe speciale</option>
+                </select>
+            </div>
+
+            <div id="recurrence-fields">
+                <div class="form-group">
+                    <label for="recurrence" class="form-label">Recurrence *</label>
+                    <select name="recurrence" id="recurrence" class="form-select">
+                        <option value="quotidienne">Quotidienne</option>
+                        <option value="hebdomadaire" selected>Hebdomadaire</option>
+                        <option value="mensuelle">Mensuelle</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="jour_semaine" class="form-label">Jour de la semaine *</label>
+                    <select name="jour_semaine" id="jour_semaine" class="form-select">
+                        <option value="0">Dimanche</option>
+                        <option value="1">Lundi</option>
+                        <option value="2">Mardi</option>
+                        <option value="3">Mercredi</option>
+                        <option value="4">Jeudi</option>
+                        <option value="5">Vendredi</option>
+                        <option value="6">Samedi</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="date-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="date_debut" class="form-label">Date *</label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-input">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="heure" class="form-label">Heure *</label>
+                <input type="time" name="heure" id="heure" class="form-input" required value="09:00">
+            </div>
+
+            <div class="form-group">
+                <label for="montant_suggere" class="form-label">Montant suggere (FCFA) *</label>
+                <input type="number" name="montant_suggere" id="montant_suggere" class="form-input" required value="2000" min="500">
+            </div>
+
+            <div class="flex gap-4" style="margin-top: 1.5rem;">
+                <a href="{{ path('admin_messes_index') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Creer la messe</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function toggleRecurrence() {
+            const type = document.getElementById('type').value;
+            document.getElementById('recurrence-fields').style.display = type === 'recurrente' ? 'block' : 'none';
+            document.getElementById('date-fields').style.display = type === 'speciale' ? 'block' : 'none';
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Dashboard Diocese - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">{{ diocese.nom }}</h1>
+    <p class="page-subtitle">Gestion du diocese</p>
+
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-icon">P</div>
+            <div class="stats-content">
+                <div class="stats-label">Paroisses</div>
+                <div class="stats-value">{{ paroisses|length }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">I</div>
+            <div class="stats-content">
+                <div class="stats-label">Intentions ce mois</div>
+                <div class="stats-value">{{ stats.intentionsMois }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">T</div>
+            <div class="stats-content">
+                <div class="stats-label">Total Intentions</div>
+                <div class="stats-value">{{ stats.totalIntentions }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">F</div>
+            <div class="stats-content">
+                <div class="stats-label">Montant total</div>
+                <div class="stats-value">{{ stats.totalMontant|number_format(0, ',', ' ') }} FCFA</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 class="card-title" style="margin-bottom: 0;">Paroisses et Chapelles</h2>
+            <a href="{{ path('admin_diocese_paroisses') }}" class="btn btn-primary">
+                Gerer les paroisses
+            </a>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Nom</th>
+                    <th>Adresse</th>
+                    <th>Mobile Money</th>
+                    <th>Messes</th>
+                    <th>Intentions</th>
+                    <th>Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in paroisses %}
+                    <tr>
+                        <td>
+                            <span style="padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;
+                                {% if item.paroisse.type.value == 'paroisse' %}background: #dbeafe; color: #1e40af;
+                                {% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                                {{ item.paroisse.typeLabel }}
+                            </span>
+                        </td>
+                        <td>{{ item.paroisse.nom }}</td>
+                        <td>{{ item.paroisse.adresse }}</td>
+                        <td>{{ item.paroisse.numeroMobileMoney }}</td>
+                        <td>{{ item.nombreMesses }}</td>
+                        <td>{{ item.nombreIntentions }}</td>
+                        <td>{{ item.montantTotal|number_format(0, ',', ' ') }} FCFA</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-gray-500">Aucune paroisse</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

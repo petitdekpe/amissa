@@ -1,0 +1,91 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Modifier {{ messe.titre }} - Amissa{% endblock %}
+
+{% block content %}
+    <a href="{{ path('admin_messes_index') }}" style="color: #6b7280; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        &larr; Retour aux messes
+    </a>
+
+    <h1 class="page-title">Modifier la Messe</h1>
+    <p class="page-subtitle">{{ paroisse.nom }}</p>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+
+    <div class="card" style="max-width: 600px;">
+        <form method="post">
+            <div class="form-group">
+                <label for="titre" class="form-label">Titre de la messe *</label>
+                <input type="text" name="titre" id="titre" class="form-input" required value="{{ messe.titre }}">
+            </div>
+
+            <div class="form-group">
+                <label for="type" class="form-label">Type *</label>
+                <select name="type" id="type" class="form-select" onchange="toggleRecurrence()">
+                    <option value="recurrente" {% if messe.type.value == 'recurrente' %}selected{% endif %}>Messe recurrente</option>
+                    <option value="speciale" {% if messe.type.value == 'speciale' %}selected{% endif %}>Messe speciale</option>
+                </select>
+            </div>
+
+            <div id="recurrence-fields" {% if messe.type.value != 'recurrente' %}style="display: none;"{% endif %}>
+                <div class="form-group">
+                    <label for="recurrence" class="form-label">Recurrence *</label>
+                    <select name="recurrence" id="recurrence" class="form-select">
+                        <option value="quotidienne" {% if messe.recurrence and messe.recurrence.value == 'quotidienne' %}selected{% endif %}>Quotidienne</option>
+                        <option value="hebdomadaire" {% if messe.recurrence and messe.recurrence.value == 'hebdomadaire' %}selected{% endif %}>Hebdomadaire</option>
+                        <option value="mensuelle" {% if messe.recurrence and messe.recurrence.value == 'mensuelle' %}selected{% endif %}>Mensuelle</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="jour_semaine" class="form-label">Jour de la semaine *</label>
+                    <select name="jour_semaine" id="jour_semaine" class="form-select">
+                        <option value="0" {% if messe.jourSemaine == 0 %}selected{% endif %}>Dimanche</option>
+                        <option value="1" {% if messe.jourSemaine == 1 %}selected{% endif %}>Lundi</option>
+                        <option value="2" {% if messe.jourSemaine == 2 %}selected{% endif %}>Mardi</option>
+                        <option value="3" {% if messe.jourSemaine == 3 %}selected{% endif %}>Mercredi</option>
+                        <option value="4" {% if messe.jourSemaine == 4 %}selected{% endif %}>Jeudi</option>
+                        <option value="5" {% if messe.jourSemaine == 5 %}selected{% endif %}>Vendredi</option>
+                        <option value="6" {% if messe.jourSemaine == 6 %}selected{% endif %}>Samedi</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="date-fields" {% if messe.type.value != 'speciale' %}style="display: none;"{% endif %}>
+                <div class="form-group">
+                    <label for="date_debut" class="form-label">Date debut *</label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-input" value="{{ messe.dateDebut ? messe.dateDebut|date('Y-m-d') : '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="date_fin" class="form-label">Date fin (optionnel)</label>
+                    <input type="date" name="date_fin" id="date_fin" class="form-input" value="{{ messe.dateFin ? messe.dateFin|date('Y-m-d') : '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="heure" class="form-label">Heure *</label>
+                <input type="time" name="heure" id="heure" class="form-input" required value="{{ messe.heure|date('H:i') }}">
+            </div>
+
+            <div class="form-group">
+                <label for="montant_suggere" class="form-label">Montant suggere (FCFA) *</label>
+                <input type="number" name="montant_suggere" id="montant_suggere" class="form-input" required value="{{ messe.montantSuggere|number_format(0, '', '') }}" min="500">
+            </div>
+
+            <div class="flex gap-4" style="margin-top: 1.5rem;">
+                <a href="{{ path('admin_messes_index') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function toggleRecurrence() {
+            const type = document.getElementById('type').value;
+            document.getElementById('recurrence-fields').style.display = type === 'recurrente' ? 'block' : 'none';
+            document.getElementById('date-fields').style.display = type === 'speciale' ? 'block' : 'none';
+        }
+    </script>
+{% endblock %}

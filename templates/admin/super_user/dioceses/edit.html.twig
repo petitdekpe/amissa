@@ -1,0 +1,31 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Modifier Diocese - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Modifier le Diocese</h1>
+
+    <div class="card" style="max-width: 600px;">
+        <form method="post">
+            <div class="form-group">
+                <label for="nom" class="form-label">Nom du diocese *</label>
+                <input type="text" name="nom" id="nom" class="form-input" required value="{{ diocese.nom }}">
+            </div>
+
+            <div class="form-group">
+                <label for="fedapay_secret_key" class="form-label">Clé secrète FedaPay</label>
+                <input type="text" name="fedapay_secret_key" id="fedapay_secret_key" class="form-input" value="{{ diocese.fedapaySecretKey }}" placeholder="sk_sandbox_...">
+            </div>
+
+            <div class="form-group">
+                <label for="fedapay_public_key" class="form-label">Clé publique FedaPay</label>
+                <input type="text" name="fedapay_public_key" id="fedapay_public_key" class="form-input" value="{{ diocese.fedapayPublicKey }}" placeholder="pk_sandbox_...">
+            </div>
+
+            <div class="flex gap-4" style="margin-top: 1.5rem;">
+                <a href="{{ path('admin_dioceses_index') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

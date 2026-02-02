@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vérifier une intention - Amissa{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container" style="max-width: 600px;">
+        <div class="card">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">Vérifier une intention de messe</h1>
+            <p class="text-gray-500" style="margin-bottom: 1.5rem;">Entrez le numéro de référence pour vérifier le statut de votre intention</p>
+
+            <form method="post" style="margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label for="numero_reference" class="form-label">Numéro de référence</label>
+                    <input type="text" name="numero_reference" id="numero_reference" class="form-input"
+                           placeholder="INT-2026-XXXXXXXX" required
+                           style="text-transform: uppercase; letter-spacing: 0.05em;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Vérifier</button>
+            </form>
+
+            {% if searched %}
+                {% if intention %}
+                    <!-- Intention trouvée -->
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">
+                        <div class="text-center" style="margin-bottom: 1.5rem;">
+                            {% if intention.statutPaiement.value == 'paye' %}
+                                <div style="width: 60px; height: 60px; margin: 0 auto 0.75rem; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="font-size: 1.5rem; color: #065f46;">&#10003;</span>
+                                </div>
+                                <span class="badge badge-success" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Paiement confirmé</span>
+                            {% elseif intention.statutPaiement.value == 'en_attente' %}
+                                <div style="width: 60px; height: 60px; margin: 0 auto 0.75rem; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="font-size: 1.5rem; color: #92400e;">&#8987;</span>
+                                </div>
+                                <span class="badge badge-warning" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Paiement en attente</span>
+                            {% else %}
+                                <div style="width: 60px; height: 60px; margin: 0 auto 0.75rem; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="font-size: 1.5rem; color: #991b1b;">&#10007;</span>
+                                </div>
+                                <span class="badge badge-danger" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Paiement échoué</span>
+                            {% endif %}
+                        </div>
+
+                        <div style="background: #000; color: #fff; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem;">
+                            <p class="text-sm" style="color: #9ca3af;">Référence</p>
+                            <p style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em;">{{ intention.numeroReference }}</p>
+                        </div>
+
+                        <div style="background: #f9fafb; padding: 1rem; border-radius: 0.5rem;">
+                            <div style="display: grid; gap: 0.5rem;">
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Demandeur:</span>
+                                    <span class="font-semibold">{{ intention.nomDemandeur }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Bénéficiaire:</span>
+                                    <span class="font-semibold">{{ intention.beneficiaireDisplay }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Type:</span>
+                                    <span class="font-semibold">{{ intention.typeIntentionLabel }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Montant:</span>
+                                    <span class="font-semibold">{{ intention.montantPaye|number_format(0, ',', ' ') }} FCFA</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Messe:</span>
+                                    <span class="font-semibold">{{ intention.occurrence.messe.titre }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Date de la messe:</span>
+                                    <span class="font-semibold">{{ intention.occurrence.dateHeure|date('d/m/Y à H:i') }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Paroisse:</span>
+                                    <span class="font-semibold">{{ intention.paroisse.nom }}</span>
+                                </div>
+                                <div class="flex justify-between flex-wrap gap-2">
+                                    <span class="text-gray-500">Date de demande:</span>
+                                    <span class="font-semibold">{{ intention.createdAt|date('d/m/Y à H:i') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Intention non trouvée -->
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 1.5rem; text-align: center;">
+                        <div style="width: 60px; height: 60px; margin: 0 auto 0.75rem; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 1.5rem; color: #6b7280;">?</span>
+                        </div>
+                        <p class="font-semibold" style="margin-bottom: 0.25rem;">Intention non trouvée</p>
+                        <p class="text-gray-500">Vérifiez le numéro de référence et réessayez</p>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="text-center" style="margin-top: 1rem;">
+            <a href="{{ path('public_home') }}" style="color: #6b7280; text-decoration: none;">
+                &larr; Retour à l'accueil
+            </a>
+        </div>
+    </div>
+{% endblock %}

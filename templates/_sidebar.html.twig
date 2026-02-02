@@ -1,0 +1,40 @@
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+    <button class="sidebar-close show-mobile-only" onclick="closeSidebar()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">
+        &times;
+    </button>
+    {% if is_granted('ROLE_SUPER_USER') %}
+        <a href="{{ path('admin_super_dashboard') }}" class="sidebar-link {{ app.request.get('_route') == 'admin_super_dashboard' ? 'active' : '' }}" onclick="closeSidebar()">
+            Dashboard
+        </a>
+        <a href="{{ path('admin_dioceses_index') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_dioceses' ? 'active' : '' }}" onclick="closeSidebar()">
+            Diocèses
+        </a>
+    {% elseif is_granted('ROLE_ADMIN_DIOCESE') %}
+        <a href="{{ path('admin_diocese_dashboard') }}" class="sidebar-link {{ app.request.get('_route') == 'admin_diocese_dashboard' ? 'active' : '' }}" onclick="closeSidebar()">
+            Dashboard
+        </a>
+    {% elseif is_granted('ROLE_SECRETAIRE') %}
+        <a href="{{ path('admin_paroisse_dashboard') }}" class="sidebar-link {{ app.request.get('_route') == 'admin_paroisse_dashboard' ? 'active' : '' }}" onclick="closeSidebar()">
+            Dashboard
+        </a>
+        <a href="{{ path('admin_messes_index') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_messes' ? 'active' : '' }}" onclick="closeSidebar()">
+            Messes
+        </a>
+    {% endif %}
+</aside>
+<button class="sidebar-toggle show-mobile-only" onclick="openSidebar()" style="position: fixed; bottom: 1rem; left: 1rem; z-index: 30; background: #000; color: #fff; border: none; border-radius: 50%; width: 3.5rem; height: 3.5rem; font-size: 1.25rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+    &#9776;
+</button>
+<script>
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('active');
+    document.getElementById('sidebar-overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+    document.body.style.overflow = '';
+}
+</script>

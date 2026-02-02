@@ -1,0 +1,47 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Diocèses - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Gestion des Diocèses</h1>
+
+    <div class="card">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 class="card-title" style="margin-bottom: 0;">Liste des Diocèses</h2>
+            <a href="{{ path('admin_dioceses_new') }}" class="btn btn-primary">+ Nouveau Diocèse</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Paroisses</th>
+                        <th>Statut</th>
+                        <th>Date création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for diocese in dioceses %}
+                        <tr>
+                            <td>{{ diocese.nom }}</td>
+                            <td>{{ diocese.paroisses|length }}</td>
+                            <td>
+                                <span class="badge {{ diocese.statut.value == 'actif' ? 'badge-success' : 'badge-danger' }}">
+                                    {{ diocese.statut.value }}
+                                </span>
+                            </td>
+                            <td>{{ diocese.createdAt|date('d/m/Y') }}</td>
+                            <td>
+                                <a href="{{ path('admin_dioceses_edit', {id: diocese.id}) }}" class="btn btn-secondary btn-sm">Modifier</a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5" class="text-center text-gray-500">Aucun diocèse</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

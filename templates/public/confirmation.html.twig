@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirmation - Amissa{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container" style="max-width: 600px;">
+        <div class="card text-center">
+            {% if intention.statutPaiement.value == 'paye' %}
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 2rem; color: #065f46;">&#10003;</span>
+                </div>
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: #065f46; margin-bottom: 0.5rem;">Paiement réussi!</h1>
+                <p class="text-gray-500" style="margin-bottom: 1.5rem;">Votre intention de messe a été enregistrée avec succès.</p>
+            {% elseif intention.statutPaiement.value == 'en_attente' %}
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 2rem; color: #92400e;">&#8987;</span>
+                </div>
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: #92400e; margin-bottom: 0.5rem;">Paiement en attente</h1>
+                <p class="text-gray-500" style="margin-bottom: 1.5rem;">Votre paiement est en cours de traitement.</p>
+            {% else %}
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 2rem; color: #991b1b;">&#10007;</span>
+                </div>
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: #991b1b; margin-bottom: 0.5rem;">Paiement échoué</h1>
+                <p class="text-gray-500" style="margin-bottom: 1.5rem;">Le paiement n'a pas abouti. Veuillez réessayer.</p>
+            {% endif %}
+
+            <!-- Numéro de référence mis en avant -->
+            <div style="background: #000; color: #fff; padding: 1.25rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                <p class="text-sm" style="color: #9ca3af; margin-bottom: 0.25rem;">Numéro de référence</p>
+                <p style="font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em;">{{ intention.numeroReference }}</p>
+                <p class="text-sm" style="color: #9ca3af; margin-top: 0.5rem;">Conservez ce numéro pour vérifier votre intention</p>
+            </div>
+
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 0.5rem; text-align: left; margin-bottom: 1.5rem;">
+                <h3 class="font-semibold" style="margin-bottom: 1rem;">Détails de l'intention</h3>
+                <div style="display: grid; gap: 0.5rem;">
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Demandeur:</span>
+                        <span class="font-semibold">{{ intention.nomDemandeur }}</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Contact:</span>
+                        <span class="font-semibold">{{ intention.contact }}</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Bénéficiaire:</span>
+                        <span class="font-semibold">{{ intention.beneficiaireDisplay }}</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Type:</span>
+                        <span class="font-semibold">{{ intention.typeIntentionLabel }}</span>
+                    </div>
+                    {% if intention.texteIntention %}
+                    <div style="margin-top: 0.5rem;">
+                        <span class="text-gray-500">Intention:</span>
+                        <p class="font-semibold" style="margin-top: 0.25rem;">{{ intention.texteIntention }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Montant:</span>
+                        <span class="font-semibold">{{ intention.montantPaye|number_format(0, ',', ' ') }} FCFA</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Messe:</span>
+                        <span class="font-semibold">{{ intention.occurrence.messe.titre }}</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Date:</span>
+                        <span class="font-semibold">{{ intention.occurrence.dateHeure|date('d/m/Y H:i') }}</span>
+                    </div>
+                    <div class="flex justify-between flex-wrap gap-2">
+                        <span class="text-gray-500">Paroisse:</span>
+                        <span class="font-semibold">{{ intention.paroisse.nom }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <a href="{{ path('public_home') }}" class="btn btn-primary">Retour à l'accueil</a>
+                <a href="{{ path('public_verifier_intention', {ref: intention.numeroReference}) }}" class="btn btn-secondary">Vérifier cette intention</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

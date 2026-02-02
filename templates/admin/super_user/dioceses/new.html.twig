@@ -1,0 +1,33 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Nouveau Diocese - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Nouveau Diocese</h1>
+
+    <div class="card" style="max-width: 600px;">
+        <form method="post">
+            <div class="form-group">
+                <label for="nom" class="form-label">Nom du diocese *</label>
+                <input type="text" name="nom" id="nom" class="form-input" required placeholder="Ex: Diocese de Cotonou">
+            </div>
+
+            <div class="form-group">
+                <label for="fedapay_secret_key" class="form-label">Clé secrète FedaPay</label>
+                <input type="text" name="fedapay_secret_key" id="fedapay_secret_key" class="form-input" placeholder="sk_sandbox_...">
+                <small class="text-gray-500">Optionnel - pour les paiements spécifiques à ce diocèse</small>
+            </div>
+
+            <div class="form-group">
+                <label for="fedapay_public_key" class="form-label">Clé publique FedaPay</label>
+                <input type="text" name="fedapay_public_key" id="fedapay_public_key" class="form-input" placeholder="pk_sandbox_...">
+                <small class="text-gray-500">Optionnel - pour les paiements spécifiques à ce diocèse</small>
+            </div>
+
+            <div class="flex gap-4" style="margin-top: 1.5rem;">
+                <a href="{{ path('admin_dioceses_index') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Creer le diocese</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

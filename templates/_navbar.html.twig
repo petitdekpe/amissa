@@ -1,0 +1,32 @@
+<nav class="navbar">
+    <div class="navbar-container">
+        <a href="{{ path('public_home') }}" class="navbar-brand">Amissa</a>
+        <button class="navbar-toggle" onclick="toggleMenu()" aria-label="Menu">
+            <span id="menu-icon">&#9776;</span>
+        </button>
+        <div class="navbar-menu" id="navbar-menu">
+            <a href="{{ path('public_verifier_intention') }}" class="navbar-link">Vérifier une intention</a>
+            {% if app.user %}
+                <span class="text-sm hide-mobile">{{ app.user.email }}</span>
+                {% if is_granted('ROLE_SUPER_USER') %}
+                    <a href="{{ path('admin_super_dashboard') }}" class="navbar-link">Dashboard</a>
+                {% elseif is_granted('ROLE_ADMIN_DIOCESE') %}
+                    <a href="{{ path('admin_diocese_dashboard') }}" class="navbar-link">Dashboard</a>
+                {% elseif is_granted('ROLE_SECRETAIRE') %}
+                    <a href="{{ path('admin_paroisse_dashboard') }}" class="navbar-link">Dashboard</a>
+                {% endif %}
+                <a href="{{ path('app_logout') }}" class="navbar-link">Déconnexion</a>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="navbar-link">Connexion</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<script>
+function toggleMenu() {
+    const menu = document.getElementById('navbar-menu');
+    const icon = document.getElementById('menu-icon');
+    menu.classList.toggle('active');
+    icon.innerHTML = menu.classList.contains('active') ? '&#10005;' : '&#9776;';
+}
+</script>

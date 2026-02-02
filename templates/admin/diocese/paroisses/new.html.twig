@@ -1,0 +1,52 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Nouvelle Paroisse/Chapelle - {{ diocese.nom }}{% endblock %}
+
+{% block content %}
+    <a href="{{ path('admin_diocese_paroisses') }}" style="color: #6b7280; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        &larr; Retour a la liste
+    </a>
+
+    <h1 class="page-title">Nouvelle Paroisse ou Chapelle</h1>
+    <p class="page-subtitle">{{ diocese.nom }}</p>
+
+    <div class="card" style="max-width: 600px;">
+        <form method="post">
+            <div class="form-group">
+                <label for="type" class="form-label">Type *</label>
+                <select name="type" id="type" class="form-select" required>
+                    {% for type in types %}
+                        <option value="{{ type.value }}">{{ type.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nom" class="form-label">Nom *</label>
+                <input type="text" name="nom" id="nom" class="form-input" required placeholder="Ex: Paroisse Saint-Michel">
+            </div>
+
+            <div class="form-group">
+                <label for="adresse" class="form-label">Adresse</label>
+                <textarea name="adresse" id="adresse" class="form-input" rows="2" placeholder="Adresse complete"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="numero_mobile_money" class="form-label">Numero Mobile Money</label>
+                <input type="text" name="numero_mobile_money" id="numero_mobile_money" class="form-input" placeholder="+22996000000">
+                <small class="text-gray-500">Numero pour recevoir les paiements des intentions</small>
+            </div>
+
+            <div class="form-group">
+                <label for="delai_minimum_jours" class="form-label">Delai minimum (jours) *</label>
+                <input type="number" name="delai_minimum_jours" id="delai_minimum_jours" class="form-input" required value="2" min="0" max="30">
+                <small class="text-gray-500">Nombre de jours minimum avant une messe pour soumettre une intention</small>
+            </div>
+
+            <div class="flex gap-4" style="margin-top: 1.5rem;">
+                <a href="{{ path('admin_diocese_paroisses') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">Creer</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

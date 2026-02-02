@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion - Amissa{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container" style="max-width: 400px; margin-top: 4rem;">
+        <div class="card">
+            <h1 style="font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 1.5rem;">Connexion</h1>
+
+            {% if error %}
+                <div class="alert alert-error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+
+            <form method="post">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" name="_username" id="email" class="form-input" value="{{ last_username }}" required autofocus placeholder="votre@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <input type="password" name="_password" id="password" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="_remember_me">
+                        Se souvenir de moi
+                    </label>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Se connecter</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

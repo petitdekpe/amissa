@@ -1,0 +1,70 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Paroisses et Chapelles - {{ diocese.nom }}{% endblock %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
+        <div>
+            <h1 class="page-title">Paroisses et Chapelles</h1>
+            <p class="page-subtitle">{{ diocese.nom }}</p>
+        </div>
+        <a href="{{ path('admin_diocese_paroisse_new') }}" class="btn btn-primary">
+            + Nouvelle paroisse/chapelle
+        </a>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Nom</th>
+                        <th>Adresse</th>
+                        <th>Mobile Money</th>
+                        <th>Délai min.</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paroisse in paroisses %}
+                        <tr>
+                            <td>
+                                <span class="badge {% if paroisse.type.value == 'paroisse' %}badge-info{% else %}badge-warning{% endif %}">
+                                    {{ paroisse.typeLabel }}
+                                </span>
+                            </td>
+                            <td class="font-semibold">{{ paroisse.nom }}</td>
+                            <td class="text-gray-500">{{ paroisse.adresse|default('-') }}</td>
+                            <td>{{ paroisse.numeroMobileMoney|default('-') }}</td>
+                            <td>{{ paroisse.delaiMinimumJours }} jours</td>
+                            <td>
+                                <div class="flex gap-2 flex-wrap">
+                                    <a href="{{ path('admin_diocese_paroisse_edit', {id: paroisse.id}) }}" class="btn btn-secondary btn-sm">
+                                        Modifier
+                                    </a>
+                                    <form method="post" action="{{ path('admin_diocese_paroisse_delete', {id: paroisse.id}) }}" onsubmit="return confirm('Supprimer cette paroisse ?');" style="display: inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ paroisse.id) }}">
+                                        <button type="submit" class="btn btn-sm" style="background: #fee2e2; color: #991b1b;">
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-gray-500" style="padding: 2rem;">
+                                Aucune paroisse ou chapelle. <a href="{{ path('admin_diocese_paroisse_new') }}">Créer la première</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,55 @@
+framework:
+    workflows:
+        intention_paiement:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'statutPaiement'
+            supports:
+                - App\Entity\IntentionMesse
+            initial_marking: en_attente
+            places:
+                - en_attente
+                - paye
+                - echoue
+                - rembourse
+            transitions:
+                payer:
+                    from: en_attente
+                    to: paye
+                echouer:
+                    from: en_attente
+                    to: echoue
+                rembourser:
+                    from: paye
+                    to: rembourse
+                retenter:
+                    from: echoue
+                    to: en_attente
+
+        intention_payout:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'statutPayout'
+            supports:
+                - App\Entity\IntentionMesse
+            initial_marking: en_attente
+            places:
+                - en_attente
+                - transfere
+                - echoue
+            transitions:
+                transferer:
+                    from: en_attente
+                    to: transfere
+                echouer_transfert:
+                    from: en_attente
+                    to: echoue
+                retenter_transfert:
+                    from: echoue
+                    to: en_attente

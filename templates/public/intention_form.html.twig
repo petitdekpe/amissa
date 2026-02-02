@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demande d'Intention - Amissa{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container" style="max-width: 600px;">
+        <a href="{{ path('public_paroisse_calendar', {id: paroisse.id}) }}" style="color: #6b7280; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            &larr; Retour au calendrier
+        </a>
+
+        <div class="card">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">Demande d'Intention de Messe</h1>
+            <p class="text-gray-500" style="margin-bottom: 1.5rem;">{{ paroisse.nom }} - {{ messe.titre }}</p>
+
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                <div class="flex items-center gap-4">
+                    <div style="font-size: 1.5rem;">&#128197;</div>
+                    <div>
+                        <div class="font-semibold">{{ occurrence.dateHeure|date('l d F Y') }}</div>
+                        <div class="text-sm text-gray-500">{{ occurrence.dateHeure|date('H:i') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-error">{{ message }}</div>
+            {% endfor %}
+
+            <form method="post" id="intention-form">
+                <h3 class="font-semibold" style="margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;">Vos coordonnées</h3>
+
+                <div class="form-group">
+                    <label for="nom_demandeur" class="form-label">Votre nom *</label>
+                    <input type="text" name="nom_demandeur" id="nom_demandeur" class="form-input" required placeholder="Votre nom complet">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contact pour notification *</label>
+                    <small class="text-gray-500" style="display: block; margin-bottom: 0.5rem;">Choisissez comment recevoir la confirmation</small>
+
+                    <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="contact_type" value="telephone" checked onchange="toggleContactField()">
+                            <span>Téléphone</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="contact_type" value="email" onchange="toggleContactField()">
+                            <span>Email</span>
+                        </label>
+                    </div>
+
+                    <div id="telephone-field">
+                        <input type="tel" name="telephone" id="telephone" class="form-input" placeholder="+229 XX XX XX XX">
+                    </div>
+                    <div id="email-field" style="display: none;">
+                        <input type="email" name="email" id="email" class="form-input" placeholder="votre@email.com">
+                    </div>
+                </div>
+
+                <h3 class="font-semibold" style="margin: 1.5rem 0 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;">Détails de l'intention</h3>
+
+                <div class="form-group">
+                    <label for="beneficiaire" class="form-label">Bénéficiaire de l'intention</label>
+                    <input type="text" name="beneficiaire" id="beneficiaire" class="form-input" placeholder="Nom du bénéficiaire (facultatif)">
+                    <small class="text-gray-500">Si non renseigné, sera indiqué comme "un(e) fidèle"</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="type_intention" class="form-label">Type d'intention</label>
+                    <select name="type_intention" id="type_intention" class="form-select">
+                        <option value="">Intention rédigée (facultatif)</option>
+                        <option value="repos_ame">Repos de l'âme</option>
+                        <option value="action_grace">Action de grâce</option>
+                        <option value="guerison">Demande de guérison</option>
+                        <option value="particuliere">Intention particulière</option>
+                        <option value="anniversaire">Anniversaire</option>
+                        <option value="defunt">Pour un défunt</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="texte_intention" class="form-label">Rédigez votre intention</label>
+                    <textarea name="texte_intention" id="texte_intention" class="form-input" rows="4" placeholder="Décrivez votre intention ici..."></textarea>
+                </div>
+
+                <h3 class="font-semibold" style="margin: 1.5rem 0 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;">Paiement</h3>
+
+                <div class="form-group">
+                    <label for="montant" class="form-label">Montant (FCFA) *</label>
+                    <input type="number" name="montant" id="montant" class="form-input" required value="{{ messe.montantSuggere }}" min="{{ messe.montantSuggere }}">
+                    <small class="text-gray-500">Montant suggéré: {{ messe.montantSuggere|number_format(0, ',', ' ') }} FCFA</small>
+                </div>
+
+                <div class="flex gap-4" style="margin-top: 1.5rem;">
+                    <a href="{{ path('public_paroisse_calendar', {id: paroisse.id}) }}" class="btn btn-secondary">Annuler</a>
+                    <button type="submit" class="btn btn-primary">Payer avec FedaPay</button>
+                </div>
+            </form>
+
+            <script>
+                function toggleContactField() {
+                    const contactType = document.querySelector('input[name="contact_type"]:checked').value;
+                    const telephoneField = document.getElementById('telephone-field');
+                    const emailField = document.getElementById('email-field');
+                    const telephoneInput = document.getElementById('telephone');
+                    const emailInput = document.getElementById('email');
+
+                    if (contactType === 'telephone') {
+                        telephoneField.style.display = 'block';
+                        emailField.style.display = 'none';
+                        telephoneInput.required = true;
+                        emailInput.required = false;
+                        emailInput.value = '';
+                    } else {
+                        telephoneField.style.display = 'none';
+                        emailField.style.display = 'block';
+                        telephoneInput.required = false;
+                        emailInput.required = true;
+                        telephoneInput.value = '';
+                    }
+                }
+
+                // Initialize on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    toggleContactField();
+                });
+            </script>
+        </div>
+    </div>
+{% endblock %}

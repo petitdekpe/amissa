@@ -1,0 +1,92 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Dashboard Super User - Amissa{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Tableau de bord Super Utilisateur</h1>
+    <p class="page-subtitle">Vue d'ensemble de tous les dioceses</p>
+
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-icon">D</div>
+            <div class="stats-content">
+                <div class="stats-label">Total Dioceses</div>
+                <div class="stats-value">{{ dioceses|length }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">I</div>
+            <div class="stats-content">
+                <div class="stats-label">Intentions ce mois</div>
+                <div class="stats-value">{{ globalStats.intentionsMois }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">T</div>
+            <div class="stats-content">
+                <div class="stats-label">Total Intentions</div>
+                <div class="stats-value">{{ globalStats.totalIntentions }}</div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-icon">F</div>
+            <div class="stats-content">
+                <div class="stats-label">Montant total</div>
+                <div class="stats-value">{{ globalStats.totalMontant|number_format(0, ',', ' ') }} FCFA</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title" style="margin-bottom: 0;">Gestion des Dioceses</h2>
+            <a href="{{ path('admin_dioceses_new') }}" class="btn btn-primary">+ Nouveau Diocese</a>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Paroisses</th>
+                    <th>Intentions</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                    <th>Date creation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in dioceses %}
+                    <tr>
+                        <td>{{ item.diocese.nom }}</td>
+                        <td>{{ item.nombreParoisses }}</td>
+                        <td>{{ item.nombreIntentions }}</td>
+                        <td>{{ item.montantTotal|number_format(0, ',', ' ') }} FCFA</td>
+                        <td>
+                            <label class="toggle-switch">
+                                <input type="checkbox" {{ item.diocese.statut.value == 'actif' ? 'checked' : '' }}
+                                       onchange="toggleDiocese({{ item.diocese.id }}, this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </td>
+                        <td>{{ item.diocese.createdAt|date('d/m/Y') }}</td>
+                        <td>
+                            <a href="{{ path('admin_dioceses_edit', {id: item.diocese.id}) }}" class="btn btn-secondary btn-sm">Modifier</a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-gray-500">Aucun diocese</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function toggleDiocese(id, checkbox) {
+            fetch('/admin/super/dioceses/' + id + '/toggle-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).catch(() => checkbox.checked = !checkbox.checked);
+        }
+    </script>
+{% endblock %}

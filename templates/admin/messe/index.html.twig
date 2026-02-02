@@ -1,0 +1,93 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Messes - Amissa{% endblock %}
+
+{% block content %}
+    <a href="{{ path('admin_paroisse_dashboard') }}" style="color: #6b7280; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        &larr; Retour au dashboard
+    </a>
+
+    <h1 class="page-title">Gestion des Messes</h1>
+    <p class="page-subtitle">{{ paroisse.nom }}</p>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+
+    <div class="card">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 class="card-title" style="margin-bottom: 0;">Liste des Messes</h2>
+            <a href="{{ path('admin_messes_new') }}" class="btn btn-primary">+ Nouvelle Messe</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Titre</th>
+                        <th>Type</th>
+                        <th>Récurrence</th>
+                        <th>Heure</th>
+                        <th>Jour</th>
+                        <th>Montant suggéré</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for messe in messes %}
+                        <tr>
+                            <td class="font-semibold">{{ messe.titre }}</td>
+                            <td>
+                                <span class="badge {{ messe.type.value == 'recurrente' ? 'badge-info' : 'badge-warning' }}">
+                                    {{ messe.type.value == 'recurrente' ? 'Récurrente' : 'Spéciale' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if messe.recurrence %}
+                                    {{ messe.recurrence.value|capitalize }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ messe.heure|date('H:i') }}</td>
+                            <td>{{ messe.jourSemaineLabel ?: '-' }}</td>
+                            <td>{{ messe.montantSuggere|number_format(0, ',', ' ') }} FCFA</td>
+                            <td>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" {{ messe.statut.value == 'active' ? 'checked' : '' }}
+                                           onchange="toggleMesse({{ messe.id }}, this)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </td>
+                            <td>
+                                <div class="flex gap-2 flex-wrap">
+                                    <a href="{{ path('admin_messes_edit', {id: messe.id}) }}" class="btn btn-secondary btn-sm">
+                                        Modifier
+                                    </a>
+                                    <form method="post" action="{{ path('admin_messes_delete', {id: messe.id}) }}" onsubmit="return confirm('Supprimer cette messe et toutes ses occurrences ?');" style="display: inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ messe.id) }}">
+                                        <button type="submit" class="btn btn-sm" style="background: #fee2e2; color: #991b1b;">
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="8" class="text-center text-gray-500">Aucune messe. <a href="{{ path('admin_messes_new') }}">Créer la première</a></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleMesse(id, checkbox) {
+            fetch('/admin/paroisse/messes/' + id + '/toggle-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).catch(() => checkbox.checked = !checkbox.checked);
+        }
+    </script>
+{% endblock %}

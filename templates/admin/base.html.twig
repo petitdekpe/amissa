@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="layout-with-sidebar">
+        {% include '_sidebar.html.twig' %}
+        <main class="main-content" style="padding: 1.5rem;">
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-error">{{ message }}</div>
+            {% endfor %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+{% endblock %}
