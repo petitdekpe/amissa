@@ -6,6 +6,7 @@ use App\Entity\Diocese;
 use App\Entity\IntentionMesse;
 use App\Entity\Paroisse;
 use App\Enum\StatutPaiement;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -22,17 +23,32 @@ class FedaPayService
         #[Autowire('%env(FEDAPAY_ENVIRONMENT)%')]
         private string $environment,
         private UrlGeneratorInterface $urlGenerator,
-        private HttpClientInterface $httpClient
+        private HttpClientInterface $httpClient,
+        #[Autowire('@monolog.logger.payment')]
+        private LoggerInterface $logger
     ) {
         $this->apiBaseUrl = $this->environment === 'live'
             ? 'https://api.fedapay.com/v1'
             : 'https://sandbox-api.fedapay.com/v1';
+
+        $this->logger->info('FedaPayService initialized', [
+            'environment' => $this->environment,
+            'apiBaseUrl' => $this->apiBaseUrl,
+        ]);
     }
 
     public function createPayment(IntentionMesse $intention): array
     {
         $diocese = $intention->getDiocese();
         $apiKey = $diocese?->getFedapaySecretKey() ?? $this->secretKey;
+
+        $this->logger->info('Creating payment for intention', [
+            'intentionId' => $intention->getId(),
+            'numeroReference' => $intention->getNumeroReference(),
+            'montant' => $intention->getMontantPaye(),
+            'dioceseId' => $diocese?->getId(),
+            'usingDioceseKey' => $diocese?->getFedapaySecretKey() !== null,
+        ]);
 
         $callbackUrl = $this->urlGenerator->generate(
             'api_fedapay_callback',
@@ -46,12 +62,8 @@ class FedaPayService
             UrlGeneratorInterface::ABSOLUTE_URL
         );
 
-        $response = $this->httpClient->request('POST', $this->apiBaseUrl . '/transactions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
+        try {
+            $requestData = [
                 'description' => sprintf(
                     'Intention de messe - %s - %s',
                     $intention->getBeneficiaireDisplay(),
@@ -67,25 +79,57 @@ class FedaPayService
                     'paroisse_id' => $intention->getParoisse()?->getId(),
                     'diocese_id' => $diocese?->getId(),
                 ],
-            ],
-        ]);
+            ];
 
-        $data = $response->toArray();
-        $transactionId = $data['v1/transaction']['id'] ?? null;
+            $this->logger->debug('FedaPay transaction request', [
+                'url' => $this->apiBaseUrl . '/transactions',
+                'data' => $requestData,
+            ]);
 
-        $tokenResponse = $this->httpClient->request('POST', $this->apiBaseUrl . '/transactions/' . $transactionId . '/token', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-            ],
-        ]);
+            $response = $this->httpClient->request('POST', $this->apiBaseUrl . '/transactions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $requestData,
+            ]);
 
-        $tokenData = $tokenResponse->toArray();
+            $data = $response->toArray();
+            $transactionId = $data['v1/transaction']['id'] ?? null;
 
-        return [
-            'transactionId' => (string) $transactionId,
-            'paymentUrl' => $tokenData['url'] ?? null,
-            'token' => $tokenData['token'] ?? null,
-        ];
+            $this->logger->info('FedaPay transaction created', [
+                'transactionId' => $transactionId,
+                'intentionId' => $intention->getId(),
+                'status' => $data['v1/transaction']['status'] ?? 'unknown',
+            ]);
+
+            $tokenResponse = $this->httpClient->request('POST', $this->apiBaseUrl . '/transactions/' . $transactionId . '/token', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                ],
+            ]);
+
+            $tokenData = $tokenResponse->toArray();
+
+            $this->logger->info('FedaPay payment token generated', [
+                'transactionId' => $transactionId,
+                'hasPaymentUrl' => isset($tokenData['url']),
+            ]);
+
+            return [
+                'transactionId' => (string) $transactionId,
+                'paymentUrl' => $tokenData['url'] ?? null,
+                'token' => $tokenData['token'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            $this->logger->error('FedaPay payment creation failed', [
+                'intentionId' => $intention->getId(),
+                'error' => $e->getMessage(),
+                'errorClass' => get_class($e),
+                'trace' => array_slice($e->getTrace(), 0, 3),
+            ]);
+            throw $e;
+        }
     }
 
     private function buildCustomerData(IntentionMesse $intention): array
@@ -114,13 +158,26 @@ class FedaPayService
             $customer['email'] = 'fidele@amissa.bj';
         }
 
+        $this->logger->debug('Built customer data', [
+            'nomDemandeur' => $intention->getNomDemandeur(),
+            'hasEmail' => isset($customer['email']) && $customer['email'] !== 'fidele@amissa.bj',
+            'hasPhone' => isset($customer['phone_number']),
+        ]);
+
         return $customer;
     }
 
     public function verifyWebhook(string $signature, string $payload): bool
     {
         $expectedSignature = hash_hmac('sha256', $payload, $this->secretKey);
-        return hash_equals($expectedSignature, $signature);
+        $isValid = hash_equals($expectedSignature, $signature);
+
+        $this->logger->debug('Webhook signature verification', [
+            'isValid' => $isValid,
+            'payloadLength' => strlen($payload),
+        ]);
+
+        return $isValid;
     }
 
     public function processWebhookEvent(array $data): array
@@ -131,11 +188,24 @@ class FedaPayService
         $transactionId = $entity['id'] ?? null;
         $status = $entity['status'] ?? null;
 
+        $this->logger->info('Processing webhook event', [
+            'eventType' => $eventType,
+            'transactionId' => $transactionId,
+            'status' => $status,
+        ]);
+
         $statutPaiement = match($status) {
             'approved' => StatutPaiement::PAYE,
             'declined', 'canceled', 'refunded' => StatutPaiement::ECHOUE,
             default => StatutPaiement::EN_ATTENTE,
         };
+
+        $this->logger->info('Webhook event processed', [
+            'transactionId' => $transactionId,
+            'fedapayStatus' => $status,
+            'mappedStatus' => $statutPaiement->value,
+            'metadata' => $entity['metadata'] ?? [],
+        ]);
 
         return [
             'eventType' => $eventType,
@@ -151,8 +221,18 @@ class FedaPayService
         $diocese = $paroisse->getDiocese();
         $apiKey = $diocese?->getFedapaySecretKey() ?? $this->secretKey;
 
+        $this->logger->info('Creating payout for paroisse', [
+            'paroisseId' => $paroisse->getId(),
+            'paroisseName' => $paroisse->getNom(),
+            'amount' => $amount,
+            'intentionCount' => count($intentionIds),
+        ]);
+
         $phoneNumber = $paroisse->getNumeroMobileMoney();
         if (!$phoneNumber) {
+            $this->logger->error('Payout failed: no mobile money number', [
+                'paroisseId' => $paroisse->getId(),
+            ]);
             throw new \InvalidArgumentException('La paroisse n\'a pas de numéro Mobile Money configuré');
         }
 
@@ -161,53 +241,93 @@ class FedaPayService
             $phoneNumber = substr($phoneNumber, 3);
         }
 
-        $response = $this->httpClient->request('POST', $this->apiBaseUrl . '/payouts', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => [
-                'amount' => (int) $amount,
-                'currency' => ['iso' => 'XOF'],
-                'mode' => 'mtn',
-                'customer' => [
-                    'phone_number' => [
-                        'number' => $phoneNumber,
-                        'country' => 'bj',
+        try {
+            $response = $this->httpClient->request('POST', $this->apiBaseUrl . '/payouts', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'amount' => (int) $amount,
+                    'currency' => ['iso' => 'XOF'],
+                    'mode' => 'mtn',
+                    'customer' => [
+                        'phone_number' => [
+                            'number' => $phoneNumber,
+                            'country' => 'bj',
+                        ],
+                    ],
+                    'metadata' => [
+                        'paroisse_id' => $paroisse->getId(),
+                        'paroisse_nom' => $paroisse->getNom(),
+                        'intention_ids' => $intentionIds,
                     ],
                 ],
-                'metadata' => [
-                    'paroisse_id' => $paroisse->getId(),
-                    'paroisse_nom' => $paroisse->getNom(),
-                    'intention_ids' => $intentionIds,
+            ]);
+
+            $data = $response->toArray();
+            $payoutId = $data['v1/payout']['id'] ?? null;
+
+            $this->logger->info('Payout created, starting transfer', [
+                'payoutId' => $payoutId,
+                'paroisseId' => $paroisse->getId(),
+            ]);
+
+            $this->httpClient->request('PUT', $this->apiBaseUrl . '/payouts/' . $payoutId . '/start', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
                 ],
-            ],
-        ]);
+            ]);
 
-        $data = $response->toArray();
-        $payoutId = $data['v1/payout']['id'] ?? null;
+            $this->logger->info('Payout transfer started', [
+                'payoutId' => $payoutId,
+                'reference' => $data['v1/payout']['reference'] ?? null,
+                'status' => $data['v1/payout']['status'] ?? null,
+            ]);
 
-        $this->httpClient->request('PUT', $this->apiBaseUrl . '/payouts/' . $payoutId . '/start', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiKey,
-            ],
-        ]);
-
-        return [
-            'payoutId' => (string) $payoutId,
-            'reference' => $data['v1/payout']['reference'] ?? null,
-            'status' => $data['v1/payout']['status'] ?? null,
-        ];
+            return [
+                'payoutId' => (string) $payoutId,
+                'reference' => $data['v1/payout']['reference'] ?? null,
+                'status' => $data['v1/payout']['status'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            $this->logger->error('Payout creation failed', [
+                'paroisseId' => $paroisse->getId(),
+                'amount' => $amount,
+                'error' => $e->getMessage(),
+                'errorClass' => get_class($e),
+            ]);
+            throw $e;
+        }
     }
 
     public function getTransaction(string $transactionId): array
     {
-        $response = $this->httpClient->request('GET', $this->apiBaseUrl . '/transactions/' . $transactionId, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->secretKey,
-            ],
+        $this->logger->debug('Fetching transaction details', [
+            'transactionId' => $transactionId,
         ]);
 
-        return $response->toArray();
+        try {
+            $response = $this->httpClient->request('GET', $this->apiBaseUrl . '/transactions/' . $transactionId, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->secretKey,
+                ],
+            ]);
+
+            $data = $response->toArray();
+
+            $this->logger->debug('Transaction details fetched', [
+                'transactionId' => $transactionId,
+                'status' => $data['v1/transaction']['status'] ?? 'unknown',
+            ]);
+
+            return $data;
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to fetch transaction', [
+                'transactionId' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

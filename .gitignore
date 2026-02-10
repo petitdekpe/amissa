@@ -8,6 +8,33 @@
 /vendor/
 ###< symfony/framework-bundle ###
 
+###> environment files ###
+# Fichiers d'environnement sensibles (ne JAMAIS commiter)
+.env
+.env.prod
+.env.dev
+.env.staging
+.env.test.local
+*.env
+
+# Conserver uniquement .env.example comme template
+!.env.example
+###< environment files ###
+
+###> sensitive files ###
+# Clés API, certificats, credentials
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
+
+# Base de données
+database.sql
+*.sql
+!migrations/*.sql
+###< sensitive files ###
+
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/

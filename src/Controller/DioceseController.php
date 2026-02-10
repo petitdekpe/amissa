@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Diocese;
+use App\Entity\User;
 use App\Enum\StatutDiocese;
 use App\Repository\DioceseRepository;
+use App\Service\ActivityLoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,10 +19,24 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_SUPER_USER')]
 class DioceseController extends AbstractController
 {
+    public function __construct(
+        private ActivityLoggerService $activityLogger
+    ) {
+    }
+
     #[Route('', name: 'admin_dioceses_index')]
     public function index(DioceseRepository $dioceseRepository): Response
     {
         $dioceses = $dioceseRepository->findAll();
+
+        $this->activityLogger->logAdmin(
+            'view_dioceses_list',
+            'Liste des diocèses consultée',
+            'Diocese',
+            null,
+            'debug',
+            ['count' => count($dioceses)]
+        );
 
         return $this->render('admin/super_user/dioceses/index.html.twig', [
             'dioceses' => $dioceses,
@@ -32,7 +48,8 @@ class DioceseController extends AbstractController
     {
         if ($request->isMethod('POST')) {
             $diocese = new Diocese();
-            $diocese->setNom($request->request->get('nom', ''));
+            $nom = $request->request->get('nom', '');
+            $diocese->setNom($nom);
             $diocese->setStatut(StatutDiocese::INACTIF);
             $diocese->setCreatedBy($this->getUser());
 
@@ -49,9 +66,34 @@ class DioceseController extends AbstractController
             $entityManager->persist($diocese);
             $entityManager->flush();
 
+            $this->activityLogger->logAdmin(
+                'diocese_created',
+                sprintf('Diocèse créé: %s', $nom),
+                'Diocese',
+                $diocese->getId(),
+                'info',
+                [
+                    'dioceseName' => $nom,
+                    'hasFedapayKeys' => !empty($secretKey) || !empty($publicKey),
+                ],
+                null,
+                [
+                    'nom' => $nom,
+                    'statut' => StatutDiocese::INACTIF->value,
+                ]
+            );
+
             $this->addFlash('success', 'Diocèse créé avec succès');
             return $this->redirectToRoute('admin_dioceses_index');
         }
+
+        $this->activityLogger->logAdmin(
+            'view_diocese_new_form',
+            'Formulaire de création de diocèse affiché',
+            'Diocese',
+            null,
+            'debug'
+        );
 
         return $this->render('admin/super_user/dioceses/new.html.twig');
     }
@@ -59,8 +101,15 @@ class DioceseController extends AbstractController
     #[Route('/{id}/edit', name: 'admin_dioceses_edit', methods: ['GET', 'POST'])]
     public function edit(Diocese $diocese, Request $request, EntityManagerInterface $entityManager): Response
     {
+        $oldValues = [
+            'nom' => $diocese->getNom(),
+            'hasFedapaySecretKey' => !empty($diocese->getFedapaySecretKey()),
+            'hasFedapayPublicKey' => !empty($diocese->getFedapayPublicKey()),
+        ];
+
         if ($request->isMethod('POST')) {
-            $diocese->setNom($request->request->get('nom', $diocese->getNom()));
+            $newNom = $request->request->get('nom', $diocese->getNom());
+            $diocese->setNom($newNom);
 
             $secretKey = $request->request->get('fedapay_secret_key');
             $publicKey = $request->request->get('fedapay_public_key');
@@ -70,9 +119,34 @@ class DioceseController extends AbstractController
 
             $entityManager->flush();
 
+            $newValues = [
+                'nom' => $newNom,
+                'hasFedapaySecretKey' => !empty($secretKey),
+                'hasFedapayPublicKey' => !empty($publicKey),
+            ];
+
+            $this->activityLogger->logAdmin(
+                'diocese_updated',
+                sprintf('Diocèse modifié: %s', $newNom),
+                'Diocese',
+                $diocese->getId(),
+                'info',
+                null,
+                $oldValues,
+                $newValues
+            );
+
             $this->addFlash('success', 'Diocèse modifié avec succès');
             return $this->redirectToRoute('admin_dioceses_index');
         }
+
+        $this->activityLogger->logAdmin(
+            'view_diocese_edit_form',
+            sprintf('Formulaire d\'édition du diocèse: %s', $diocese->getNom()),
+            'Diocese',
+            $diocese->getId(),
+            'debug'
+        );
 
         return $this->render('admin/super_user/dioceses/edit.html.twig', [
             'diocese' => $diocese,
@@ -84,12 +158,24 @@ class DioceseController extends AbstractController
     {
         $this->denyAccessUnlessGranted('DIOCESE_TOGGLE_STATUS', $diocese);
 
-        $newStatut = $diocese->getStatut() === StatutDiocese::ACTIF
+        $oldStatut = $diocese->getStatut();
+        $newStatut = $oldStatut === StatutDiocese::ACTIF
             ? StatutDiocese::INACTIF
             : StatutDiocese::ACTIF;
 
         $diocese->setStatut($newStatut);
         $entityManager->flush();
+
+        $this->activityLogger->logAdmin(
+            'diocese_status_changed',
+            sprintf('Statut du diocèse %s changé: %s → %s', $diocese->getNom(), $oldStatut->value, $newStatut->value),
+            'Diocese',
+            $diocese->getId(),
+            'info',
+            null,
+            ['statut' => $oldStatut->value],
+            ['statut' => $newStatut->value]
+        );
 
         return new JsonResponse([
             'success' => true,

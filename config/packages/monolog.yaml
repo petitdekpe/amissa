@@ -1,6 +1,11 @@
 monolog:
     channels:
-        - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        - deprecation
+        - payment      # Logs de paiement FedaPay
+        - intention    # Logs des intentions de messe
+        - auth         # Logs d'authentification
+        - admin        # Logs des actions admin
+        - webhook      # Logs des webhooks
 
 when@dev:
     monolog:
@@ -14,6 +19,32 @@ when@dev:
                 type: console
                 process_psr_3_messages: false
                 channels: ["!event", "!doctrine", "!console"]
+            # Fichiers de logs dédiés par channel
+            payment:
+                type: stream
+                path: "%kernel.logs_dir%/payment.log"
+                level: debug
+                channels: [payment]
+            intention:
+                type: stream
+                path: "%kernel.logs_dir%/intention.log"
+                level: debug
+                channels: [intention]
+            auth:
+                type: stream
+                path: "%kernel.logs_dir%/auth.log"
+                level: debug
+                channels: [auth]
+            admin:
+                type: stream
+                path: "%kernel.logs_dir%/admin.log"
+                level: debug
+                channels: [admin]
+            webhook:
+                type: stream
+                path: "%kernel.logs_dir%/webhook.log"
+                level: debug
+                channels: [webhook]
 
 when@test:
     monolog:
@@ -37,8 +68,8 @@ when@prod:
                 action_level: error
                 handler: nested
                 excluded_http_codes: [404, 405]
-                channels: ["!deprecation"]
-                buffer_size: 50 # How many messages should be saved? Prevent memory leaks
+                channels: ["!deprecation", "!payment", "!intention", "!auth", "!admin", "!webhook"]
+                buffer_size: 50
             nested:
                 type: stream
                 path: php://stderr
@@ -53,3 +84,34 @@ when@prod:
                 channels: [deprecation]
                 path: php://stderr
                 formatter: monolog.formatter.json
+            # Logs de production dédiés
+            payment_prod:
+                type: rotating_file
+                path: "%kernel.logs_dir%/payment.log"
+                level: info
+                channels: [payment]
+                max_files: 30
+            intention_prod:
+                type: rotating_file
+                path: "%kernel.logs_dir%/intention.log"
+                level: info
+                channels: [intention]
+                max_files: 30
+            auth_prod:
+                type: rotating_file
+                path: "%kernel.logs_dir%/auth.log"
+                level: info
+                channels: [auth]
+                max_files: 30
+            admin_prod:
+                type: rotating_file
+                path: "%kernel.logs_dir%/admin.log"
+                level: info
+                channels: [admin]
+                max_files: 30
+            webhook_prod:
+                type: rotating_file
+                path: "%kernel.logs_dir%/webhook.log"
+                level: info
+                channels: [webhook]
+                max_files: 30

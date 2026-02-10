@@ -21,3 +21,13 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # Configure ActivityLoggerService with specific loggers
+    App\Service\ActivityLoggerService:
+        arguments:
+            $paymentLogger: '@monolog.logger.payment'
+            $intentionLogger: '@monolog.logger.intention'
+            $authLogger: '@monolog.logger.auth'
+            $adminLogger: '@monolog.logger.admin'
+            $webhookLogger: '@monolog.logger.webhook'
+            $logger: '@logger'

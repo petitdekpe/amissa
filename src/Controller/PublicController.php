@@ -6,6 +6,7 @@ use App\Entity\IntentionMesse;
 use App\Entity\User;
 use App\Repository\OccurrenceMesseRepository;
 use App\Repository\ParoisseRepository;
+use App\Service\ActivityLoggerService;
 use App\Service\FedaPayService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,10 +16,23 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class PublicController extends AbstractController
 {
+    public function __construct(
+        private ActivityLoggerService $activityLogger
+    ) {
+    }
+
     #[Route('/', name: 'public_home')]
     public function home(ParoisseRepository $paroisseRepository): Response
     {
         $paroisses = $paroisseRepository->findAllActive();
+
+        $this->activityLogger->logIntention(
+            'view_home',
+            'Page d\'accueil consultée',
+            null,
+            'debug',
+            ['paroisseCount' => count($paroisses)]
+        );
 
         return $this->render('public/home.html.twig', [
             'paroisses' => $paroisses,
@@ -35,10 +49,24 @@ class PublicController extends AbstractController
         $paroisse = $paroisseRepository->find($id);
 
         if (!$paroisse) {
+            $this->activityLogger->logIntention(
+                'view_calendar_error',
+                'Paroisse non trouvée',
+                null,
+                'warning',
+                ['paroisseId' => $id]
+            );
             throw $this->createNotFoundException('Paroisse non trouvee');
         }
 
         if (!$paroisse->getDiocese()?->isActif()) {
+            $this->activityLogger->logIntention(
+                'view_calendar_error',
+                'Diocèse inactif',
+                null,
+                'warning',
+                ['paroisseId' => $id, 'dioceseId' => $paroisse->getDiocese()?->getId()]
+            );
             throw $this->createNotFoundException('Diocese inactif');
         }
 
@@ -68,6 +96,19 @@ class PublicController extends AbstractController
             return $o->getDateHeure() > $dateLimite && $o->canReceiveIntentions();
         });
 
+        $this->activityLogger->logIntention(
+            'view_calendar',
+            sprintf('Calendrier consulté pour %s', $paroisse->getNom()),
+            null,
+            'debug',
+            [
+                'paroisseId' => $id,
+                'paroisseName' => $paroisse->getNom(),
+                'selectedDate' => $selectedDateStr,
+                'occurrenceCount' => count($filteredOccurrences),
+            ]
+        );
+
         return $this->render('public/calendar.html.twig', [
             'paroisse' => $paroisse,
             'occurrences' => array_values($filteredOccurrences),
@@ -87,10 +128,27 @@ class PublicController extends AbstractController
         $occurrence = $occurrenceRepository->find($occurrenceId);
 
         if (!$occurrence) {
+            $this->activityLogger->logIntention(
+                'new_intention_error',
+                'Occurrence non trouvée',
+                null,
+                'warning',
+                ['occurrenceId' => $occurrenceId]
+            );
             throw $this->createNotFoundException('Occurrence non trouvee');
         }
 
         if (!$occurrence->canReceiveIntentions()) {
+            $this->activityLogger->logIntention(
+                'new_intention_error',
+                'Messe ne peut plus recevoir d\'intentions',
+                null,
+                'warning',
+                [
+                    'occurrenceId' => $occurrenceId,
+                    'dateHeure' => $occurrence->getDateHeure()->format('Y-m-d H:i'),
+                ]
+            );
             $this->addFlash('error', 'Cette messe ne peut plus recevoir d\'intentions');
             return $this->redirectToRoute('public_paroisse_calendar', ['id' => $occurrence->getMesse()?->getParoisse()?->getId()]);
         }
@@ -100,13 +158,40 @@ class PublicController extends AbstractController
             $telephone = trim($request->request->get('telephone', ''));
             $email = trim($request->request->get('email', ''));
 
+            $this->activityLogger->logIntention(
+                'new_intention_submit',
+                'Soumission de formulaire d\'intention',
+                null,
+                'info',
+                [
+                    'occurrenceId' => $occurrenceId,
+                    'nomDemandeur' => $nomDemandeur,
+                    'hasPhone' => !empty($telephone),
+                    'hasEmail' => !empty($email),
+                ]
+            );
+
             // Validation
             if (empty($nomDemandeur)) {
+                $this->activityLogger->logIntention(
+                    'new_intention_validation_error',
+                    'Validation échouée: nom manquant',
+                    null,
+                    'warning',
+                    ['occurrenceId' => $occurrenceId]
+                );
                 $this->addFlash('error', 'Veuillez indiquer votre nom');
                 return $this->redirectToRoute('public_intention_new', ['occurrenceId' => $occurrenceId]);
             }
 
             if (empty($telephone) && empty($email)) {
+                $this->activityLogger->logIntention(
+                    'new_intention_validation_error',
+                    'Validation échouée: contact manquant',
+                    null,
+                    'warning',
+                    ['occurrenceId' => $occurrenceId, 'nomDemandeur' => $nomDemandeur]
+                );
                 $this->addFlash('error', 'Veuillez indiquer un numéro de téléphone ou une adresse email');
                 return $this->redirectToRoute('public_intention_new', ['occurrenceId' => $occurrenceId]);
             }
@@ -131,17 +216,66 @@ class PublicController extends AbstractController
             $entityManager->persist($intention);
             $entityManager->flush();
 
+            $this->activityLogger->logIntention(
+                'intention_created',
+                sprintf('Nouvelle intention créée: %s', $intention->getNumeroReference()),
+                $intention->getId(),
+                'info',
+                [
+                    'numeroReference' => $intention->getNumeroReference(),
+                    'nomDemandeur' => $nomDemandeur,
+                    'beneficiaire' => $intention->getBeneficiaireDisplay(),
+                    'montant' => $intention->getMontantPaye(),
+                    'occurrenceId' => $occurrenceId,
+                    'paroisseId' => $occurrence->getMesse()?->getParoisse()?->getId(),
+                ]
+            );
+
             try {
                 $paymentResult = $fedaPayService->createPayment($intention);
                 $intention->setTransactionFedapay($paymentResult['transactionId']);
                 $entityManager->flush();
 
+                $this->activityLogger->logPayment(
+                    'payment_initiated',
+                    sprintf('Paiement initié pour %s', $intention->getNumeroReference()),
+                    $intention->getId(),
+                    'info',
+                    [
+                        'transactionId' => $paymentResult['transactionId'],
+                        'numeroReference' => $intention->getNumeroReference(),
+                        'montant' => $intention->getMontantPaye(),
+                    ]
+                );
+
                 return $this->redirect($paymentResult['paymentUrl']);
             } catch (\Exception $e) {
+                $this->activityLogger->logError(
+                    'payment',
+                    'payment_error',
+                    sprintf('Erreur paiement pour %s: %s', $intention->getNumeroReference(), $e->getMessage()),
+                    $e,
+                    [
+                        'intentionId' => $intention->getId(),
+                        'numeroReference' => $intention->getNumeroReference(),
+                    ]
+                );
+
                 $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement: ' . $e->getMessage());
                 return $this->redirectToRoute('public_intention_new', ['occurrenceId' => $occurrenceId]);
             }
         }
+
+        $this->activityLogger->logIntention(
+            'view_intention_form',
+            'Formulaire d\'intention affiché',
+            null,
+            'debug',
+            [
+                'occurrenceId' => $occurrenceId,
+                'paroisseId' => $occurrence->getMesse()?->getParoisse()?->getId(),
+            ]
+        );
 
         return $this->render('public/intention_form.html.twig', [
             'occurrence' => $occurrence,
@@ -156,8 +290,26 @@ class PublicController extends AbstractController
         $intention = $entityManager->getRepository(IntentionMesse::class)->find($id);
 
         if (!$intention) {
+            $this->activityLogger->logIntention(
+                'view_confirmation_error',
+                'Intention non trouvée pour confirmation',
+                null,
+                'warning',
+                ['intentionId' => $id]
+            );
             throw $this->createNotFoundException('Intention non trouvée');
         }
+
+        $this->activityLogger->logIntention(
+            'view_confirmation',
+            sprintf('Page de confirmation affichée pour %s', $intention->getNumeroReference()),
+            $intention->getId(),
+            'info',
+            [
+                'numeroReference' => $intention->getNumeroReference(),
+                'statutPaiement' => $intention->getStatutPaiement()->value,
+            ]
+        );
 
         return $this->render('public/confirmation.html.twig', [
             'intention' => $intention,
@@ -176,9 +328,38 @@ class PublicController extends AbstractController
                 ? trim($request->request->get('numero_reference', ''))
                 : trim($request->query->get('ref', ''));
 
+            $this->activityLogger->logIntention(
+                'verify_intention_search',
+                sprintf('Recherche d\'intention: %s', $numeroReference),
+                null,
+                'info',
+                ['numeroReference' => $numeroReference]
+            );
+
             if (!empty($numeroReference)) {
                 $intention = $entityManager->getRepository(IntentionMesse::class)
                     ->findOneBy(['numeroReference' => strtoupper($numeroReference)]);
+
+                if ($intention) {
+                    $this->activityLogger->logIntention(
+                        'verify_intention_found',
+                        sprintf('Intention trouvée: %s', $intention->getNumeroReference()),
+                        $intention->getId(),
+                        'info',
+                        [
+                            'numeroReference' => $intention->getNumeroReference(),
+                            'statutPaiement' => $intention->getStatutPaiement()->value,
+                        ]
+                    );
+                } else {
+                    $this->activityLogger->logIntention(
+                        'verify_intention_not_found',
+                        sprintf('Intention non trouvée: %s', $numeroReference),
+                        null,
+                        'warning',
+                        ['numeroReference' => $numeroReference]
+                    );
+                }
             }
         }
 
