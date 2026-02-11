@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription - Amissa{% endblock %}
+
+{% block body %}
+    {% include '_navbar.html.twig' %}
+    <div class="container" style="max-width: 450px; margin-top: 4rem;">
+        <div class="card">
+            <h1 style="font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 1.5rem;">Inscription</h1>
+
+            {% if success %}
+                <div class="alert alert-success" style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <strong>Inscription reussie !</strong><br>
+                    Votre compte a ete cree. Un administrateur doit valider votre compte avant que vous puissiez vous connecter.
+                </div>
+                <a href="{{ path('app_login') }}" class="btn btn-primary" style="width: 100%; text-align: center;">Retour a la connexion</a>
+            {% else %}
+                {% if error %}
+                    <div class="alert alert-error">{{ error }}</div>
+                {% endif %}
+
+                <form method="post">
+                    <div class="form-group">
+                        <label for="prenom" class="form-label">Prenom</label>
+                        <input type="text" name="prenom" id="prenom" class="form-input" required autofocus placeholder="Votre prenom">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nom" class="form-label">Nom</label>
+                        <input type="text" name="nom" id="nom" class="form-input" required placeholder="Votre nom">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" id="email" class="form-input" required placeholder="votre@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Mot de passe</label>
+                        <input type="password" name="password" id="password" class="form-input" required minlength="8" placeholder="Minimum 8 caracteres">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password_confirm" class="form-label">Confirmer le mot de passe</label>
+                        <input type="password" name="password_confirm" id="password_confirm" class="form-input" required minlength="8">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Creer mon compte</button>
+                </form>
+
+                <p style="text-align: center; margin-top: 1rem; color: #666;">
+                    Deja inscrit ? <a href="{{ path('app_login') }}">Se connecter</a>
+                </p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
