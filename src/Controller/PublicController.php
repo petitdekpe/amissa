@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\IntentionMesse;
 use App\Entity\User;
+use App\Enum\TypeParoisse;
+use App\Repository\DioceseRepository;
 use App\Repository\OccurrenceMesseRepository;
 use App\Repository\ParoisseRepository;
 use App\Service\ActivityLoggerService;
@@ -22,20 +24,38 @@ class PublicController extends AbstractController
     }
 
     #[Route('/', name: 'public_home')]
-    public function home(ParoisseRepository $paroisseRepository): Response
-    {
-        $paroisses = $paroisseRepository->findAllActive();
+    public function home(
+        Request $request,
+        ParoisseRepository $paroisseRepository,
+        DioceseRepository $dioceseRepository
+    ): Response {
+        $dioceseId = $request->query->get('diocese');
+        $type = $request->query->get('type');
+
+        $dioceseId = $dioceseId ? (int) $dioceseId : null;
+        $type = $type ?: null;
+
+        $paroisses = $paroisseRepository->findActiveWithFilters($dioceseId, $type);
+        $dioceses = $dioceseRepository->findAllActive();
 
         $this->activityLogger->logIntention(
             'view_home',
             'Page d\'accueil consultée',
             null,
             'debug',
-            ['paroisseCount' => count($paroisses)]
+            [
+                'paroisseCount' => count($paroisses),
+                'filterDiocese' => $dioceseId,
+                'filterType' => $type,
+            ]
         );
 
         return $this->render('public/home.html.twig', [
             'paroisses' => $paroisses,
+            'dioceses' => $dioceses,
+            'types' => TypeParoisse::cases(),
+            'selectedDiocese' => $dioceseId,
+            'selectedType' => $type,
         ]);
     }
 

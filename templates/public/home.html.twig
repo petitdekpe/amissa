@@ -10,14 +10,60 @@
             <p class="text-gray-500">Selectionnez une paroisse pour soumettre votre intention de messe</p>
         </div>
 
+        {# Filtres #}
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
+            <form method="get" action="{{ path('public_home') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                    <label for="diocese" class="form-label">Diocese</label>
+                    <select name="diocese" id="diocese" class="form-input" onchange="this.form.submit()">
+                        <option value="">Tous les dioceses</option>
+                        {% for diocese in dioceses %}
+                            <option value="{{ diocese.id }}" {% if selectedDiocese == diocese.id %}selected{% endif %}>
+                                {{ diocese.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                    <label for="type" class="form-label">Type</label>
+                    <select name="type" id="type" class="form-input" onchange="this.form.submit()">
+                        <option value="">Tous</option>
+                        {% for typeOption in types %}
+                            <option value="{{ typeOption.value }}" {% if selectedType == typeOption.value %}selected{% endif %}>
+                                {{ typeOption.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if selectedDiocese or selectedType %}
+                    <a href="{{ path('public_home') }}" class="btn" style="background-color: #e5e7eb; color: #374151;">
+                        Reinitialiser
+                    </a>
+                {% endif %}
+            </form>
+
+            {% if selectedDiocese or selectedType %}
+                <p class="text-sm text-gray-500" style="margin-top: 0.75rem;">
+                    {{ paroisses|length }} resultat(s) trouve(s)
+                </p>
+            {% endif %}
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
             {% for paroisse in paroisses %}
                 <a href="{{ path('public_paroisse_calendar', {id: paroisse.id}) }}" class="card" style="text-decoration: none; color: inherit; transition: box-shadow 0.2s;">
                     <div class="flex gap-4">
-                        <div class="stats-icon">P</div>
+                        <div class="stats-icon">{{ paroisse.type.value == 'chapelle' ? 'C' : 'P' }}</div>
                         <div style="flex: 1;">
                             <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem;">{{ paroisse.nom }}</h2>
-                            <p class="text-sm text-gray-500" style="margin-bottom: 0.5rem;">{{ paroisse.diocese.nom }}</p>
+                            <p class="text-sm text-gray-500" style="margin-bottom: 0.5rem;">
+                                {{ paroisse.diocese.nom }}
+                                <span style="margin-left: 0.5rem; padding: 0.125rem 0.5rem; background-color: #f3f4f6; border-radius: 9999px; font-size: 0.75rem;">
+                                    {{ paroisse.type.label }}
+                                </span>
+                            </p>
                             <p class="text-sm">{{ paroisse.adresse }}</p>
                         </div>
                         <div style="color: #9ca3af;">&rarr;</div>
@@ -25,7 +71,13 @@
                 </a>
             {% else %}
                 <div class="card text-center" style="grid-column: 1 / -1; padding: 3rem;">
-                    <p class="text-gray-500">Aucune paroisse disponible pour le moment.</p>
+                    <p class="text-gray-500">
+                        {% if selectedDiocese or selectedType %}
+                            Aucune paroisse ne correspond aux criteres selectionnes.
+                        {% else %}
+                            Aucune paroisse disponible pour le moment.
+                        {% endif %}
+                    </p>
                 </div>
             {% endfor %}
         </div>

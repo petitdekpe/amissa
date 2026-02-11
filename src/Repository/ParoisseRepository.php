@@ -35,6 +35,31 @@ class ParoisseRepository extends ServiceEntityRepository
     /**
      * @return Paroisse[]
      */
+    public function findActiveWithFilters(?int $dioceseId = null, ?string $type = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->join('p.diocese', 'd')
+            ->where('d.statut = :statut')
+            ->setParameter('statut', StatutDiocese::ACTIF)
+            ->orderBy('d.nom', 'ASC')
+            ->addOrderBy('p.nom', 'ASC');
+
+        if ($dioceseId !== null) {
+            $qb->andWhere('d.id = :dioceseId')
+               ->setParameter('dioceseId', $dioceseId);
+        }
+
+        if ($type !== null && $type !== '') {
+            $qb->andWhere('p.type = :type')
+               ->setParameter('type', $type);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return Paroisse[]
+     */
     public function findByDiocese(Diocese $diocese): array
     {
         return $this->createQueryBuilder('p')
